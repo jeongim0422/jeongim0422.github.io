@@ -643,3 +643,164 @@ ShopInventory.cs
 }
 
 ~~~
+
+
+<br>
+<br>
+
+### c. 조합 시스템
+
+- 아이템은 허브, 물병, 부산물, 기타로 종류가 나뉜다. 조합 UI는 최대 네 종류의 아이템을 필요로 하며 각 칸에는 특정 종류의 아이템만 넣을 수 있다. 아이템을 드래그해 시스템 슬롯에 넣으면 그에 적합한 레시피를 검사해 제작된 물약이 생성된다.
+
+<br>
+
+조합 슬롯에 적용된 PharmacySlot.cs는 드롭된 아이템이 슬롯이 허용하는 아이템 타입인지를 검사하고 허용 가능하다면 정보를 저장한다.
+
+<br>
+<br>
+
+PharmacySlot.cs
+
+<hr>
+
+~~~
+     
+    public class PharmacySlot : MonoBehaviour, IDropHandler//, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, 
+{
+    // 허용할 아이템 타입 지정
+    public Item.ItemType allowedType;
+
+    public Item item; //획득 아이템
+    public string itemName; // 아이템 이름
+    public int itemCount; //획득 아이템 개수
+    public Image itemImage; //아이템 이미지
+    public GameObject BaseImage; // 배경 이미지
+
+    [SerializeField]
+    private GameObject itemCountImage;
+    [SerializeField]
+    private Text text_Count; //아이템 개수 UI로 띄우기 위해
+
+    // 드래그 슬롯 정보 받아오기 위해 사용
+    PharmacySlotManager pharmacySlotManager;
+
+    private Slot previousDragSlot; // 슬롯의 아이템을 교체시 개수 다시 원상복귀시키기 위해 이전 아이템 저장
+
+    // 슬롯 개수 원상복구시 메서드 호출 위해 사용
+    public Inventory inventory;
+
+    public ItemDatabase itemDatabase;
+
+    public void OnDrop(PointerEventData eventData)
+    {
+        Slot dragSlot = eventData.pointerDrag.GetComponent<Slot>();
+
+        // 드래그된 아이템이 허용하는 타입이며 한 개만 필요한 Bottle 타입이라면
+        if (dragSlot.item != null && dragSlot.item.itemType == allowedType && allowedType == Item.ItemType.Bottle)
+        {
+            // 비어있는 상태였다면 조합 슬롯에 드래그한 슬롯 정보 추가하도록 함
+            if (item == null)
+            {
+                item = dragSlot.item;
+                itemName = item.itemName;
+                itemImage.sprite = item.itemImage;
+                itemCount = 1;
+
+                BaseImage.SetActive(false);
+                SetColor(1);
+                itemDatabase.AddItem(dragSlot.item, -1);
+                inventory.AddItemsInSlot();
+
+                previousDragSlot = dragSlot; // 사본 저장
+
+                dragSlot = null;
+            }
+            // 슬롯이 채워져 있으며, 드래그 슬롯과 현재 슬롯의 이름이 다르다면
+            else if (item != null && dragSlot.item.itemName != item.itemName)
+            {
+                // 슬롯을 업데이트
+                item = dragSlot.item;
+                itemName = item.itemName;
+                itemImage.sprite = item.itemImage;
+                itemCount = 1;
+                itemDatabase.AddItem(item, -1);
+                // 이전에 선택했던 슬롯을 원상복구
+                itemDatabase.AddItem(previousDragSlot.item, 1);
+
+                previousDragSlot = dragSlot; // 사본 저장
+
+                dragSlot = null;
+            }
+        }
+
+        // Bottle이 아닌 개수가 표시되는 허용된 타입의 슬롯이라면
+        else if (dragSlot.item != null && dragSlot.item.itemType == allowedType)
+        {
+            // 비어있는 상태였다면 바로 추가하도록 함
+            if (item == null)
+            {
+                item = dragSlot.item;
+                itemName = item.itemName;
+                itemImage.sprite = item.itemImage;
+                itemCount = 1;
+
+                BaseImage.SetActive(false);
+                SetColor(1);
+                itemDatabase.AddItem(dragSlot.item, -1);
+                inventory.AddItemsInSlot();
+                // 상점 인벤토리 업데이트
+
+                previousDragSlot = dragSlot; // 사본 저장
+
+                dragSlot = null;
+            }
+
+            // 슬롯이 채워져 있으며, 드래그 슬롯과 현재 슬롯이 같다면(개수를 추가한다면)
+            else if (item != null && dragSlot.item.itemName == item.itemName)
+            {
+
+                itemCount += 1;
+                // 카운트 이미지 활성화
+                itemCountImage.SetActive(true);
+                text_Count.text = itemCount.ToString();
+                itemDatabase.AddItem(dragSlot.item, -1);
+                inventory.AddItemsInSlot();
+                // 상점 인벤토리 업데이트
+
+                previousDragSlot = dragSlot; // 사본 저장
+
+                dragSlot = null;
+            }
+
+            // 슬롯이 채워져 있으며, 드래그 슬롯과 현재 슬롯의 이름이 다르다면
+            else if (item != null && dragSlot.item.itemName != item.itemName)
+            {
+                // 슬롯을 업데이트
+                item = dragSlot.item;
+                itemName = item.itemName;
+                itemImage.sprite = item.itemImage;
+                itemCount = 1;
+                itemDatabase.AddItem(item, -1);
+
+                // 이전에 선택했던 슬롯을 원상복구
+                itemDatabase.AddItem(previousDragSlot.item, 1);
+
+                inventory.AddItemsInSlot();
+                // 상점 인벤토리 업데이트
+
+                previousDragSlot = dragSlot; // 사본 저장
+
+                dragSlot = null;
+            }
+        }
+    }
+
+    private void SetColor(float _alpha)
+    {
+        Color color = itemImage.color;
+        color.a = _alpha;
+        itemImage.color = color;
+    }
+}
+
+~~~
