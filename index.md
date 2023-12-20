@@ -804,3 +804,430 @@ PharmacySlot.cs
 }
 
 ~~~
+
+<br>
+
+조합 UI에 적용된 PharmacyPotion.cs는 조합 제작된 레시피와 슬롯에 저장된 아이템을 검사해 포션을 생성해 슬롯에 전달한다.
+
+<br>
+<br>
+
+PharmacyPotion.cs
+
+<hr>
+
+~~~
+     
+   public class PharmacyPotion : MonoBehaviour
+{
+    public PharmacyRecipe recipe;
+    public ClickPotion clickPotion;
+
+    Item potion;
+
+    public PharmacySlot bottleSlot;
+    public PharmacySlot herbSlot;
+    public PharmacySlot lootSlot;
+    public PharmacySlot ingredientSlot;
+
+    public GameObject BaseImage; // 배경 이미지
+    public Image potionImage;
+
+    bool checkBottle;
+    bool checkHerb;
+    bool checkLoot;
+    bool checkIngredient;
+
+    public GameObject pharmacySlotGrid;
+    PharmacySlot[] pharmacySlots;
+
+    private void Start()
+    {
+        pharmacySlots = pharmacySlotGrid.GetComponentsInChildren<PharmacySlot>();
+    }
+
+    public void CraftPotion()
+    {
+        if (CheckRecipe()) // 레시피에 필요한 아이템들이 슬롯에 있는지 확인
+        {
+            // 레시피에 해당하는 포션을 생성하여 슬롯에 배치
+            CreatePotion();
+        }
+    }
+
+    private bool CheckRecipe()
+    {
+        checkBottle = false;
+        checkHerb = false;
+        checkLoot = false;
+        checkIngredient = false;
+
+        // 레시피 병과 병 슬롯 모두 존재하고
+        if (recipe.bottle != null && bottleSlot.item != null)
+        {
+            // 아이템 이름도 같다면
+            if (recipe.bottle.itemName == bottleSlot.itemName)
+            {
+                checkBottle = true;
+            }
+        }
+        // 레시피 병과 병 슬롯의 두 개 다 존재하지 않는다면
+        if (recipe.bottle == null && bottleSlot.item == null)
+        {
+            checkBottle = true;
+        }
+
+        if (recipe.herb != null && herbSlot.item != null)
+        {
+            if (recipe.bottle.itemName == herbSlot.itemName)
+            {
+                checkHerb = true;
+            }
+        }
+        if (recipe.herb == null && herbSlot.item == null)
+        {
+            checkHerb = true;
+        }
+
+        if (recipe.loot != null && lootSlot.item != null)
+        {
+            if (recipe.loot.itemName == lootSlot.itemName)
+            {
+                checkLoot = true;
+            }
+        }
+        if (recipe.loot == null && lootSlot.item == null)
+        {
+            checkLoot = true;
+        }
+
+        if (recipe.ingredient != null && ingredientSlot.item != null)
+        {
+            if (recipe.ingredient.itemName == ingredientSlot.itemName)
+            {
+                checkIngredient = true;
+            }
+        }
+        if (recipe.ingredient == null && ingredientSlot.item == null)
+        {
+            checkIngredient = true;
+        }
+
+        return (checkBottle && checkHerb && checkLoot && checkIngredient);
+
+    }
+
+    // 포션을 생성하여 슬롯에 배치하는 메서드
+    private void CreatePotion()
+    {
+        BaseImage.SetActive(false);
+
+        potion = recipe.potion;
+
+        potionImage.sprite = potion.itemImage;
+
+        clickPotion.SetItem(potion);
+
+        SetColor(potionImage, 1);
+
+        ClearPharmacySlot();
+    }
+
+    public void ClearPotion()
+    {
+        BaseImage.SetActive(true);
+        SetColor(potionImage, 0);
+        potion = null;
+        potionImage.sprite = null;
+    }
+
+    private void SetColor(Image image, float _alpha)
+    {
+        Color color = image.color;
+        color.a = _alpha;
+        image.color = color;
+    }
+
+    private void ClearPharmacySlot()
+    {
+        foreach (PharmacySlot pharmacySlot in pharmacySlots)
+        {
+            pharmacySlot.item = null;
+            pharmacySlot.itemName = null;
+            pharmacySlot.itemImage.sprite = null;
+            pharmacySlot.itemCount = 0;
+
+            SetColor(pharmacySlot.itemImage, 0);
+            pharmacySlot.BaseImage.SetActive(true);
+        }
+    }
+}
+
+~~~
+
+
+<br>
+<br>
+
+### d. 대화와 퀘스트 시스템
+
+- NPC를 클릭하면 저장된 대화가 나타나 퀘스트를 얻게 된다.
+
+<br>
+
+빈 오브젝트에 부착된 DialogueManager.cs를 통해 대화 데이터와 초상화 정보를 저장한다.
+
+<br>
+<br>
+
+DialogueManager.cs
+
+<hr>
+
+~~~
+     
+   public class DialogueManager : MonoBehaviour
+{
+    //여러 문장이 들어있으므로 string[]사용
+    Dictionary<int, string[]> talkData;
+    Dictionary<int, Sprite> portraitData;
+
+    // 사용한 초상화 이미지를 배열에 할당해줌
+    public Sprite[] portaitArr;
+
+    void Awake()
+    {
+        talkData = new Dictionary<int, string[]>();
+        portraitData = new Dictionary<int, Sprite>();
+        GenerateData();
+    }
+
+    // 대화 데이터 추가
+    void GenerateData()
+    {
+        // 초상화 정보를 추가해줌
+        portraitData.Add(1000 + 0, portaitArr[0]);
+        portraitData.Add(1000 + 1, portaitArr[1]);
+
+        // 일반 대화
+        talkData.Add(1000, new string[] { "안녕:0" });
+
+        // 퀘스트용 대화, 퀘스트ID + NPCID
+        talkData.Add(10 + 1000, new string[] { "어서 와.:0",
+                                               "퀘스트를 줄게:1",
+                                               "파란 보석을 하나 가져다 줘:0"});
+        talkData.Add(11 + 1000, new string[] { "보석을 가져온거야?:0",
+                                               "고마워:1"});
+    }
+
+    public string GetDialogue(int dialogueId, int talkIndex)
+    {
+        // 퀘스트에 맞는 대사가 없다면
+        if (!talkData.ContainsKey(dialogueId))
+        {
+            // npc의 퀘스트 해당 퀘스트 관련 처음 대사가 없으면 기본 대사를 가져옴
+            if (!talkData.ContainsKey(dialogueId - dialogueId % 10))
+                return GetDialogue(dialogueId - dialogueId % 100, talkIndex);
+
+            // npc의 퀘스트 해당 퀘스트 관련 처음 대사를 가져옴
+            else
+                return GetDialogue(dialogueId - dialogueId % 10, talkIndex);
+        }
+
+        // 대화가 끝이라면
+        if (talkIndex == talkData[dialogueId].Length) return null;
+        else return talkData[dialogueId][talkIndex];
+    }
+
+    public Sprite GetPortrait(int npcId, int portraitIndex)
+    {
+        return portraitData[npcId + portraitIndex];
+    }
+}
+
+~~~
+
+<br>
+
+빈 오브젝트에 부착된 QuestManager.cs는 퀘스트 정보와 아이템을 저장하고 대화와 퀘스트 순서를 업데이트한다.
+
+<br>
+<br>
+
+QuestManager.cs
+
+<hr>
+
+~~~
+     
+    public class QuestManager : MonoBehaviour
+{
+    public int questId;
+    public int questIndex; //퀘스트 순서 구분
+    public GameObject inventory;
+
+    Dictionary<int, QuestData> questList;
+
+    public Item[] questItems;
+
+    Slot[] slots;
+
+    void Awake()
+    {
+        questList = new Dictionary<int, QuestData>();
+        questIndex = 0;
+        slots = inventory.GetComponentsInChildren<Slot>();
+        GenerateData();
+    }
+
+    // 퀘스트 정보 저장
+    private void GenerateData()
+    {
+        questList.Add(10, new QuestData("포션 제조하기", new int[] { 1000 }, questItems[0]));
+        questList.Add(20, new QuestData("퀘스트 올 클리어!", new int[] { 0 }, questItems[0]));
+    }
+
+    // NPCID를 받아 퀘스트 대사 코드 반환
+    public int GetQuestDialogueIndex(int npcId)
+    {
+        return questId + questIndex;
+    }
+
+    public string CheckQuest(int npcId)
+    {
+
+        // 퀘스트 관련 대화하는 npc 수가 여러 명일 때
+        if (questList[questId].npcId.Length > 1)
+        {
+            // 대화를 나누고 있는 npc가 퀘스트리스트의 현재 진행중인 퀘스트ID의 퀘스트 데이터에서
+            // 퀘스트 관련 NPC 배열의 퀘스트 대화 순서가 같을 때
+            if (npcId == questList[questId].npcId[questIndex])
+            {
+                if (CheckItem(questList[questId].item))
+                {
+                    // 퀘스트 대화 순서가 증가함
+                    questIndex++;
+                }
+            }
+        }
+        else
+        {
+            if (questIndex + 1 == questList[questId].npcId.Length)
+            {
+                if (CheckItem(questList[questId].item))
+                {
+                    Debug.Log("증가");
+                    // 퀘스트 대화 순서가 증가함
+                    questIndex++;
+                    //NextQuest();
+                }
+
+            }
+        }
+        if (questList[questId].npcId.Length == 1)
+        {
+            //questIndex = 0;
+        }
+
+        //ControlObject();
+
+        // 현재 퀘스트 대화가 끝나고 다음 퀘스트 실행
+
+
+
+        // 진행 중인 퀘스트 이름을 반환해 어떤 퀘스트 중인지 알 수 있도록 함
+        return questList[questId].questName;
+    }
+
+    public string CheckQuest()
+    {
+        return questList[questId].questName;
+    }
+
+    void NextQuest()
+    {
+        questId += 10;
+        questIndex = 0;
+    }
+
+    bool CheckItem(Item item)
+    {
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i].item != null)
+            {
+                if (slots[i].item.itemName == item.itemName)
+                {
+                    // 아이템 감소
+                    return true;
+
+                }
+            }
+        }
+        return false;
+    }
+}
+
+~~~
+
+
+<br>
+<br>
+
+### e. 아이템 데이터베이스 생성
+
+- 인벤토리가 여러 개이므로 아이템을 한번에 업데이트 할 수 있도록 데이터베이스를 생성한다.
+
+<br>
+
+빈 오브젝트에 부착된 ItemDatabase.cs는 딕셔너리를 통해 아이템 정보와 개수를 저장하고, 개수를 업데이트한다.
+
+<br>
+<br>
+
+ItemDatabase.cs
+
+<hr>
+
+~~~
+     
+public class ItemDatabase : MonoBehaviour
+{
+    public Inventory inventory;
+    public ShopInventory shopInventory;
+    // 아이템과 개수를 저장하는 딕셔너리
+    public Dictionary<Item, int> itemDictionary;
+
+    public void Awake()
+    {
+        itemDictionary = new Dictionary<Item, int>();
+    }
+
+    public void AddItem(Item item, int count = 1)
+    {
+        // 아이템이 이미 딕셔너리에 존재한다면
+        if (itemDictionary.ContainsKey(item))
+        {
+            // 개수만 더해줌
+            itemDictionary[item] += count;
+
+            // 아이템 개수가 -가 된다면 0으로 보정
+            if (itemDictionary[item] <= 0)
+            {
+                itemDictionary[item] = 0;
+
+            }
+        }
+        // 아이템이 없다면 새로 저장
+        else if (!itemDictionary.ContainsKey(item))
+        {
+            itemDictionary.Add(item, count);
+        }
+
+        inventory.AddItemsInSlot();
+        shopInventory.AddItemsInSlot(item, count);
+    }
+}
+
+~~~
