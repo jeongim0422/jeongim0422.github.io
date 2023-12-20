@@ -13,7 +13,7 @@
 ### [2. 게임 개발](#게임-개발)
 - a. [타이밍 바를 통한 채집 시스템](#채집)
 - b-1. [상점 구매 시스템](#구매)
-- b-2. 상점 판매 시스템](#판매)
+- b-2. [상점 판매 시스템](#판매)
 - c. [조합 시스템](#조합)
 - d. [대화와 퀘스트 시스템](#대화)
 - e. [아이템 데이터베이스 생성](#아이템)
@@ -212,6 +212,116 @@ TimingBar.cs
         isNice = false;
         isGood = false;
         isGreat = false;
+    }
+}
+
+~~~
+
+
+<br>
+<br>
+
+### b-1. 상점 구매 시스템
+
+- 상점은 판매 아이템 프리팹을 미리 배열에 할당한다. 이후 Start() 메서드가 실행되면 배열 정보를 받아 슬롯 프리팹을 생성해 스크롤뷰에 넣어준다. 아이템을 구매하면 플레이어의 금액이 감소되며 인벤토리에 해당 아이템이 추가된다.
+
+<br>
+
+Shop.cs는 상점 UI의 상위 오브젝트에 할당되며 저장된 배열 정보에 따라 슬롯을 생성한다. 구매 버튼을 클릭한다면 구매 가능 여부에 따라 아이템을 인벤토리에 추가한다. 또한 슬롯을 클릭 시 해당 슬롯에 선택 이미지가 나타나도록 한다.
+
+<br>
+<br>
+
+Shop.cs
+
+<hr>
+
+~~~
+     
+    public class Shop : MonoBehaviour
+{
+    public GameObject shopItemSlotPrefab; // 아이템 슬롯 UI 프리팹, 미리 할당되어 있음
+    public Transform content;   // 아이템 슬롯을 담은 상위 오브젝트
+    public ScrollRect scrollRect;
+
+    public ItemDatabase itemDatabase;
+
+    public Inventory inventory;
+    public ShopInventory shopInventory;
+    public Inventory pharmacyInventory;
+    public PlayerMoney playerMoney;
+
+    bool canBuy;
+
+    RectTransform contentRectTransform;
+    RectTransform shopSlotRectTransform;
+
+    GameObject itemSlotObj;
+    ShopSlot shopSlot;
+
+    public Item[] shopItems; // 상점에 있는 모든 아이템 스크립터블 오브젝트를 배열에 할당해줌
+    private ShopSlot[] shopSlotsArray; // 상점의 슬롯들을 담을 배열
+
+    public Image selectedImage;
+    private int selectedSlotIndex;  // 선택된 슬롯의 인덱스
+
+    void Start()
+    {
+        canBuy = false;
+        InitializeShopUI();
+        shopSlotsArray = content.GetComponentsInChildren<ShopSlot>();
+        selectedSlotIndex = 0;
+    }
+
+    void InitializeShopUI()
+    {
+        contentRectTransform = content.GetComponent<RectTransform>();
+        float totalHeight = 0f; // Content의 초기 높이를 나타내는 변수
+
+        for (int index = 0; index < shopItems.Length; index++)
+        {
+            itemSlotObj = Instantiate(shopItemSlotPrefab, content); // 아이템 개수만큼 슬롯 생성함
+            shopSlot = itemSlotObj.GetComponent<ShopSlot>(); // 생성된 각 슬롯의 스크립트를 가져옴
+
+            shopSlot.SetItem(shopItems[index], index); // 아이템 정보 설정
+
+            shopSlotRectTransform = shopSlot.GetComponent<RectTransform>();
+            totalHeight += shopSlotRectTransform.sizeDelta.y;
+
+            // 슬롯이 추가될 때마다 Content의 높이를 slot의 높이만큼 증가시킴 
+            //contentRectTransform.sizeDelta = new Vector2(contentRectTransform.sizeDelta.x, contentRectTransform.sizeDelta.y + shopSlotRectTransform.sizeDelta.y);
+            contentRectTransform.sizeDelta = new Vector2(contentRectTransform.sizeDelta.x, contentRectTransform.sizeDelta.y + totalHeight);
+        }
+    }
+
+    public void SelectSlot(int index)
+    {
+
+        // 슬롯 선택 시 호출되어 선택 이미지를 슬롯의 아이템 이미지로 이동시키고 투명도 조절해 보이도록 함
+        selectedImage.transform.position = shopSlotsArray[index].Image_Item.transform.position;
+        // 선택 이미지가 슬롯에 가려지지 않고, 스크롤뷰를 움직여도 슬롯 따라 움직이도록 함
+        selectedImage.transform.SetParent(shopSlotsArray[index].transform);
+        SelectSetColor(1);
+
+        selectedSlotIndex = index;
+    }
+
+    private void SelectSetColor(float _alpha) // 슬롯 선택 시 선택 이미지 나타나도록 함
+    {
+        Color color = selectedImage.color;
+        color.a = _alpha;
+        selectedImage.color = color;
+    }
+
+    public void ClickBuyBtn()
+    {
+        canBuy = playerMoney.BuyItem(shopSlotsArray[selectedSlotIndex].item);
+
+        if (canBuy)
+        {
+            itemDatabase.AddItem(shopSlotsArray[selectedSlotIndex].item);
+            //pharmacyInventory.AcquireItem(shopSlotsArray[selectedSlotIndex].item);
+        }
     }
 }
 
