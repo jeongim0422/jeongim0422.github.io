@@ -39,6 +39,8 @@
 
 ### a. 타이밍 바를 통한 채집 시스템
 
+<br>
+
 - 플레이어가 배치된 허브 오브젝트 가까이에서 X키를 누르면 채집 타이밍바가 허브 오브젝트 상단에 나타난다. 좌우로 이동하는 핸들에 맞춰 스페이스바를 누르면 핸들이 어떤 영역에 위치했는지에 따라 허브 프리팹을 생성한다.
 
 <br>
@@ -223,6 +225,8 @@ TimingBar.cs
 
 ### b-1. 상점 구매 시스템
 
+<br>
+
 - 상점은 판매 아이템 프리팹을 미리 배열에 할당한다. 이후 Start() 메서드가 실행되면 배열 정보를 받아 슬롯 프리팹을 생성해 스크롤뷰에 넣어준다. 아이템을 구매하면 플레이어의 금액이 감소되며 인벤토리에 해당 아이템이 추가된다.
 
 <br>
@@ -326,3 +330,114 @@ Shop.cs
 }
 
 ~~~
+
+<br>
+
+상점 슬롯 프리팹에 적용되는 ShopSlot.cs는 슬롯에 아이템 정보를 넣어주고 슬롯이 클릭되면 그 슬롯의 인덱스를 Shop.cs에 반환해 적절한 슬롯에 선택 이미지가 나타날 수 있도록 한다.
+
+<br>
+<br>
+
+ShopSlot.cs
+
+<hr>
+
+~~~
+     
+    public class ShopSlot : MonoBehaviour, IPointerClickHandler
+{
+    public Item item; //획득 아이템
+    Shop shop;
+
+    [SerializeField]
+    private Text text_Item_Name; //아이템 이름 할당
+    [SerializeField]
+    private Text text_Item_Desc; //아이템 설명 할당
+    public Image Image_Item; //아이템 이미지 할당
+    public Text text_Item_BuyPrice;
+
+
+    [SerializeField]
+    private GameObject Prefab_Selected; // 선택 이미지 프리팹
+    Image image_Selected; // 선택 이미지
+
+    public int slotIndex = 0;
+
+    void Awake()
+    {
+        shop = GetComponentInParent<Shop>();
+    }
+
+    public void SetItem(Item newItem, int index)
+    {
+        item = newItem;
+
+        // UI 요소에 아이템 정보 설정
+        text_Item_Name.text = item.itemName;
+        text_Item_Desc.text = item.itemDesc;
+        text_Item_BuyPrice.text = item.buyPrice.ToString();
+        Image_Item.sprite = item.itemImage;
+
+        slotIndex = index; // 슬롯이 본인의 인덱스 순서 갖도록 함
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        shop.SelectSlot(slotIndex);
+    }
+}
+
+~~~
+
+<br>
+
+플레이어의 금액을 관리하는 PlayerMoney.cs는 구매와 판매에 따른 소지 금액을 UI에 업데이트하며 아이템 구매 시 구매 가능 여부를 Shop.cs에 반환한다.
+
+<br>
+<br>
+
+PlayerMoney.cs
+
+<hr>
+
+~~~
+     
+    public class PlayerMoney : MonoBehaviour
+{
+    public int money;
+
+    public Text text_Money;
+
+    void Start()
+    {
+        money = 100;
+    }
+
+    private void Update()
+    {
+        text_Money.text = money.ToString();
+    }
+
+    public bool BuyItem(Item item)
+    {
+        if (money - item.buyPrice >= 0)
+        {
+            money -= item.buyPrice;
+
+            //Debug.Log("구매 후 보유 금액 : " + money);
+
+            return true;
+        }
+
+        else//else if (money - item.sellPrice < 0)
+        {
+            return false;
+        }
+    }
+
+    public void SellItem(Item item)
+    {
+        money += item.sellPrice;
+        //Debug.Log("판매 후 보유 금액 : " + money);
+    }
+}
