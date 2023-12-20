@@ -219,7 +219,11 @@ TimingBar.cs
 }
 
 ~~~
+<br>
 
+![채집](https://github.com/jeongim0422/jeongim0422.github.io/assets/74513631/8ec52278-0326-4efb-b8d2-7fda374c12ad)
+
+<br>
 
 <br>
 <br>
@@ -444,6 +448,11 @@ PlayerMoney.cs
 }
 ~~~
 
+<br>
+
+![구매](https://github.com/jeongim0422/jeongim0422.github.io/assets/74513631/036fa1c8-b397-44bf-aca0-b76ed4571810)
+
+<br>
 
 <br>
 <br>
@@ -646,6 +655,11 @@ ShopInventory.cs
 
 ~~~
 
+<br>
+
+![판매](https://github.com/jeongim0422/jeongim0422.github.io/assets/74513631/ef0854e0-c8a4-4a77-b488-eed538bfc6ec)
+
+<br>
 
 <br>
 <br>
@@ -969,6 +983,11 @@ PharmacyPotion.cs
 
 ~~~
 
+<br>
+
+![조합](https://github.com/jeongim0422/jeongim0422.github.io/assets/74513631/b7ff1ef3-07a9-4963-bcb4-d80c2176766a)
+
+<br>
 
 <br>
 <br>
@@ -1177,6 +1196,11 @@ QuestManager.cs
 
 ~~~
 
+<br>
+
+![대화](https://github.com/jeongim0422/jeongim0422.github.io/assets/74513631/b84205bc-99e3-445c-81b7-1de6ea526f0f)
+
+<br>
 
 <br>
 <br>
@@ -1239,3 +1263,9 @@ public class ItemDatabase : MonoBehaviour
 }
 
 ~~~
+
+<br>
+
+![아이템딕셔너리](https://github.com/jeongim0422/jeongim0422.github.io/assets/74513631/ef130439-3718-4321-9030-61a645fb87dd)
+
+<br>
