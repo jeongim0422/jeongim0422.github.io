@@ -51,8 +51,7 @@
 Herb.cs
 <hr>
 
-~~~
-     
+~~~ 
     public class Herb : MonoBehaviour
 {
     public GameObject herbPrefab; // 씬에 생성할 프리팹 할당
@@ -126,5 +125,5 @@ Herb.cs
         Destroy(gameObject, 2);
     }
 }
-
+~~~
 ~~~
