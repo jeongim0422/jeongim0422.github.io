@@ -132,6 +132,7 @@ Herb.cs
 타이밍바 UI에는 TimingBar.cs가 적용되어 핸들을 좌우로 이동시키고 슬라이더 값과 영역 크기를 비교해 결과값을 Herb.cs에 반환한다.
 <br>
 <br>
+<br>
 TimingBar.cs
 <hr>
 
@@ -441,3 +442,204 @@ PlayerMoney.cs
         //Debug.Log("판매 후 보유 금액 : " + money);
     }
 }
+~~~
+
+
+<br>
+<br>
+
+### b-2. 상점 판매 시스템
+
+- 상점 UI를 활성화하면 상점 인벤토리 역시 활성화된다. 인벤토리의 아이템을 클릭한 후 판매 버튼을 누르면 인벤토리의 아이템이 하나 감소되며 해당 금액이 소지 금액에 추가된다.
+
+<br>
+
+상점 인벤토리에 부착된 ShopInventory.cs는 인벤토리의 아이템에 따라 슬롯 프리팹을 생성하거나 제거하며 업데이트한다. 아이템 선택을 위해 슬롯이 제거된다면 슬롯을 인덱스를 재부여하고 금액을 업데이트한다.
+
+<br>
+<br>
+
+ShopInventory.cs
+
+<hr>
+
+~~~
+     
+    public class ShopInventory : MonoBehaviour
+{
+    public GameObject shopItemSlotPrefab; // 아이템 슬롯 UI 프리팹, 미리 할당되어 있음
+    public Transform content;   // 아이템 슬롯을 담은 상위 오브젝트
+    public ScrollRect scrollRect;
+
+    public PlayerMoney playerMoney;
+
+    public ItemDatabase itemDatabase;
+    public Inventory pharmacyInventory;
+
+    RectTransform contentRectTransform;
+    RectTransform shopInventorySlotRectTransform;
+
+    GameObject itemSlotObj;
+    ShopInventorySlot shopInventorySlot;
+
+    [SerializeField]
+    private GameObject inventoryContent;
+    [SerializeField]
+    private GameObject pharmacyInventoryContent;
+
+    public Slot[] inventorySlots;
+    public Slot[] pharmacyInventorySlots;
+
+    //public Item[] inventoryItems; // 인벤토리의 아이템들을 담아줄 배열
+    public List<ShopInventorySlot> shopInventorySlots = new List<ShopInventorySlot>(); // 인벤토리의 아이템들을 담아줄 리스트
+
+
+    public Image selectedImage;
+    private Image previousSelectedImage; // selectedImager가 null이 되는 것을 방지하기 위해 복사본 생성
+    private int index;  // 슬롯의 인덱스
+    int selectedSlotIndex; // 선택된 슬롯의 인덱스
+
+    void Start()
+    {
+        inventorySlots = inventoryContent.GetComponentsInChildren<Slot>();
+        pharmacyInventorySlots = pharmacyInventoryContent.GetComponentsInChildren<Slot>();
+        contentRectTransform = content.GetComponent<RectTransform>();
+
+        index = -1;
+    }
+
+    // 아이템 데이터베이스에 따라 슬롯을 업데이트
+    public void AddItemsInSlot()
+    {
+        foreach (var item in itemDatabase.itemDictionary)
+        {
+            Item itemData = item.Key;
+            int itemDataCount = item.Value;
+
+            for (int i = 0; i < shopInventorySlots.Count; i++)
+            {
+                if (shopInventorySlots[i].item != null)
+                {
+                    if (shopInventorySlots[i].item.itemName == itemData.itemName)
+                    {
+                        shopInventorySlots[i].SetSlotCount(itemDataCount); //슬롯 아이템 개수 업데이트
+                    }
+                }
+            }
+        }
+    }
+
+    public void AddItemsInSlot(Item aquireItem, int count)
+    {
+        bool foundItem = false;
+
+        foreach (var item in itemDatabase.itemDictionary)
+        {
+            Item itemData = item.Key;
+            int itemDataCount = item.Value;
+
+            // 획득한 아이템에 대해 개수 업데이트 위해 조건문 작성
+            if (itemData == aquireItem)
+            {
+                for (int i = 0; i < shopInventorySlots.Count; i++)
+                {
+                    if (shopInventorySlots[i].item != null)
+                    {
+                        if (shopInventorySlots[i].item.itemName == itemData.itemName)
+                        {
+                            // 상점인벤에 아이템이 없을 때만 슬롯 생성하기 위해 foundItem = true 로 설정
+                            foundItem = true;
+                            shopInventorySlots[i].SetSlotCount(itemDataCount); //슬롯 아이템 개수 업데이트
+
+                        }
+                    }
+                }
+            }
+        }
+        // 획득 아이템이 슬롯에 없다면
+        if (foundItem == false)
+        {
+            itemSlotObj = Instantiate(shopItemSlotPrefab, content); // 슬롯을 추가 생성
+            shopInventorySlot = itemSlotObj.GetComponent<ShopInventorySlot>(); // 생성된 슬롯의 스크립트를 가져옴
+
+            // 슬롯을 담은 리스트에 새로 생성한 리스트 추가
+            shopInventorySlots.Add(shopInventorySlot);
+            index = shopInventorySlots.Count - 1;
+
+            for (int i = 0; i < shopInventorySlots.Count; i++)
+            {
+                if (shopInventorySlots[i].item == null)
+                {
+                    shopInventorySlots[i].AddItem(index, aquireItem, count);
+                    break;
+                }
+            }
+        }
+    }
+
+    public void RefreshSlot(int indexToRemove)
+    {
+        // 삭제할 슬롯의 인덱스가 0 이상이고 슬롯 리스트 개수보다 작을 때
+        if (indexToRemove >= 0 && indexToRemove < shopInventorySlots.Count)
+        {
+            // 리스트에서 해당 인덱스의 슬롯 삭제
+            shopInventorySlots.RemoveAt(indexToRemove);
+        }
+
+        // 리스트 순서대로 인덱스를 재부여
+        for (int i = indexToRemove; i < shopInventorySlots.Count; i++)
+        {
+            shopInventorySlots[i].slotIndex = i;
+        }
+
+
+    }
+
+    // 슬롯이 파괴되면 selectedImage가 null이 되는 것을 방지하기 위해 호출
+    public void ClearSelectedImageReference(ShopInventorySlot destroySlot)
+    {
+        previousSelectedImage = selectedImage != null ? Instantiate(selectedImage) : null; // 이전 이미지의 복사본 생성
+
+        destroySlot.gameObject.SetActive(false);
+        Destroy(destroySlot.gameObject);
+        //AddItemsInSlot();
+
+
+        if (previousSelectedImage != null)
+        {
+            selectedImage = previousSelectedImage;
+        }
+    }
+
+    public void SelectSlot(int index)
+    {
+
+        // 슬롯 선택 시 호출되어 선택 이미지를 슬롯의 아이템 이미지로 이동시키고 투명도 조절해 보이도록 함
+        selectedImage.transform.position = shopInventorySlots[index].Item_Image.transform.position;
+        // 선택 이미지가 슬롯에 가려지지 않고, 스크롤뷰를 움직여도 슬롯 따라 움직이도록 함
+        selectedImage.transform.SetParent(shopInventorySlots[index].transform);
+        SelectSetColor(1);
+
+        selectedSlotIndex = index;
+    }
+
+    public void SelectSetColor(float _alpha) // 슬롯 선택 시 선택 이미지 나타나도록 함
+    {
+        Color color = selectedImage.color;
+        color.a = _alpha;
+        selectedImage.color = color;
+    }
+
+    public void ClickSellBtn()
+    {
+        if (selectedSlotIndex >= 0 && selectedSlotIndex < shopInventorySlots.Count)
+        {
+            // 인벤토리 아이템 감소 로직
+            playerMoney.SellItem(shopInventorySlots[selectedSlotIndex].item); // 아이템 판매 처리
+            itemDatabase.AddItem(shopInventorySlots[selectedSlotIndex].item, -1);
+
+        }
+    }
+}
+
+~~~
