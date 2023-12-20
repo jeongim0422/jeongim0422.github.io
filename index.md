@@ -126,4 +126,94 @@ Herb.cs
     }
 }
 ~~~
+
+<br>
+
+타이밍바 UI에는 TimingBar.cs가 적용되어 핸들을 좌우로 이동시키고 슬라이더 값과 영역 크기를 비교해 결과값을 Herb.cs에 반환한다.
+<br>
+TimingBar.cs
+<hr>
+
+~~~
+     
+    public class TimingBar : MonoBehaviour
+{
+    public Slider timingSlider; // 타이밍바 슬라이더 할당
+
+    public RectTransform goodTiming; // good 영역 이미지의 위치
+
+    public int speed = 1000000; // 타이밍 속도 ♣ 추후 허브별 다르게 적용
+
+    public float goodMinPos; // good 영역 시작 위치
+    public float goodMaxPos; // good 영역 종료 위치
+
+    public bool isNice; // 판정 결과 저장
+    public bool isGood;
+    public bool isGreat;
+
+    private bool moveRight = true; // 초기에 우측으로 이동하도록 함
+
+
+    void Awake()
+    {
+        timingSlider.value = 0; // 값 0으로 초기화
+        goodMinPos = goodTiming.anchoredPosition.x; // good 영역 시작 position
+        goodMaxPos = goodTiming.sizeDelta.x + goodMinPos; // good 영역 종료 position, 사이즈 x크기 + 시작위치
+
+        resetTiming();
+    }
+
+    public IEnumerator Timing()
+    {
+        yield return null;
+
+        while (!(Input.GetKeyDown(KeyCode.Space))) // 스페이스가 눌리지 않을 때까지
+        {
+            if (moveRight)
+            {
+                timingSlider.value += Time.deltaTime * speed; // 우측 이동
+
+                if (timingSlider.value >= timingSlider.maxValue)
+                {
+                    timingSlider.value = timingSlider.maxValue;
+                    moveRight = false; // 우측 이동이 완료되면 좌측으로 이동
+                }
+            }
+            else if (!moveRight)
+            {
+                timingSlider.value -= Time.deltaTime * speed; // 좌측 이동
+
+                if (timingSlider.value <= timingSlider.minValue)
+                {
+                    timingSlider.value = timingSlider.minValue;
+                    moveRight = true; // 우측 이동이 완료되면 좌측으로 이동
+                }
+            }
+
+            yield return null;
+        }
+
+        if (timingSlider.value >= goodMinPos && timingSlider.value <= goodMaxPos) // 스페이스 눌렀을 떄 value가 good 영역 사이라면
+        {
+            isGood = true;
+        }
+        else
+        {
+            isGood = false;
+            isNice = true;
+        }
+
+        yield return null;
+    }
+
+    public void resetTiming()
+    {
+        timingSlider.value = 0;
+
+        isNice = false;
+        isGood = false;
+        isGreat = false;
+    }
+}
+
 ~~~
